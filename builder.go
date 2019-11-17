@@ -1,6 +1,8 @@
 package golaypdf
 
-import "github.com/jung-kurt/gofpdf"
+import (
+	"github.com/jung-kurt/gofpdf"
+)
 
 type Context interface {
 	PDF() *gofpdf.Fpdf
@@ -11,7 +13,7 @@ type Context interface {
 }
 
 type FixedWidthMeasurable interface {
-	Measure(context Context, width float64) (height float64, render func(context Context, x, y, w, h float64))
+	Measure(context Context, width float64) (height float64, render Renderer)
 }
 
 type BorderBox struct {
@@ -19,15 +21,15 @@ type BorderBox struct {
 	PTop, PRight, PLeft, PBottom float64
 }
 
-func (b BorderBox) Measure(context Context, width float64) (height float64, render func(context Context, x, y, w, h float64)) {
+func (b BorderBox) Measure(context Context, width float64) (height float64, render Renderer) {
 	contentWidth := width - b.PLeft - b.PRight
 	contentHeight, contentRender := b.Content.Measure(context, contentWidth)
 
-	return contentHeight + b.PTop + b.PBottom, func(context Context, x, y, w, h float64) {
+	return contentHeight + b.PTop + b.PBottom, FuncToRenderer(func(context Context, x, y, w, h float64) {
 		context.PDF().Rect(x, y, w, h, "D")
 
-		contentRender(context, x+b.PLeft, y+b.PTop, contentWidth, contentHeight)
-	}
+		contentRender.Render(context, x+b.PLeft, y+b.PTop, contentWidth, contentHeight)
+	})
 }
 
 type Text struct {
@@ -37,11 +39,11 @@ type Text struct {
 	Align  string
 }
 
-func (c Text) Measure(context Context, width float64) (height float64, render func(context Context, x, y, w, h float64)) {
+func (c Text) Measure(context Context, width float64) (height float64, render Renderer) {
 	textList := context.PDF().SplitText(c.Text, width)
 	height = float64(len(textList)) * c.LineHt
 
-	return height, func(context Context, x, y, w, h float64) {
+	return height, FuncToRenderer(func(context Context, x, y, w, h float64) {
 		cellY := y + (h-height)/2
 
 		for _, textLine := range textList {
@@ -49,7 +51,7 @@ func (c Text) Measure(context Context, width float64) (height float64, render fu
 			context.PDF().CellFormat(w, c.LineHt, textLine, "", 0, c.Align, false, 0, "")
 			cellY += c.LineHt
 		}
-	}
+	})
 }
 
 type PdfBuilder struct {
@@ -82,11 +84,11 @@ func (builder *PdfBuilder) Render(block FixedWidthMeasurable) {
 	width, _ := builder.Pdf.GetPageSize()
 	width = width - builder.MarginH - builder.MarginH
 
-	height, render := block.Measure(builder, width)
+	height, renderer := block.Measure(builder, width)
 
 	x := builder.MarginH
 	y := builder.Pdf.GetY()
-	render(builder, x, y, width, height)
+	renderer.Render(builder, x, y, width, height)
 
 	builder.Pdf.SetY(y + height)
 }
@@ -101,10 +103,10 @@ type HorizontalBox struct {
 	Columns []HorizontalBoxItem
 }
 
-func (h HorizontalBox) Measure(context Context, width float64) (height float64, render func(context Context, x, y, w, h float64)) {
+func (h HorizontalBox) Measure(context Context, width float64) (height float64, render Renderer) {
 	type cellType struct {
 		width, height float64
-		render        func(context Context, x, y, w, h float64)
+		renderer      Renderer
 	}
 
 	colCount := len(h.Columns)
@@ -127,29 +129,29 @@ func (h HorizontalBox) Measure(context Context, width float64) (height float64, 
 
 	for idx, column := range h.Columns {
 		cell.width = column.Width + baseExtra*column.Grow
-		cell.height, cell.render = column.Content.Measure(context, cell.width)
+		cell.height, cell.renderer = column.Content.Measure(context, cell.width)
 		if cell.height > maxHeight {
 			maxHeight = cell.height
 		}
 		cellList[idx] = cell
 	}
 
-	return maxHeight, func(context Context, x, y, w, h float64) {
+	return maxHeight, FuncToRenderer(func(context Context, x, y, w, h float64) {
 		for _, cell := range cellList {
-			cell.render(context, x, y, cell.width, maxHeight)
+			cell.renderer.Render(context, x, y, cell.width, maxHeight)
 			x += cell.width
 		}
-	}
+	})
 }
 
 type VerticalBox struct {
 	Rows []FixedWidthMeasurable
 }
 
-func (v VerticalBox) Measure(context Context, width float64) (height float64, render func(context Context, x, y, w, h float64)) {
+func (v VerticalBox) Measure(context Context, width float64) (height float64, render Renderer) {
 	type itemType struct {
-		height float64
-		render func(context Context, x, y, w, h float64)
+		height   float64
+		renderer Renderer
 	}
 
 	var item itemType
@@ -157,23 +159,23 @@ func (v VerticalBox) Measure(context Context, width float64) (height float64, re
 	height = 0.0
 
 	for idx, row := range v.Rows {
-		item.height, item.render = row.Measure(context, width)
+		item.height, item.renderer = row.Measure(context, width)
 		height += item.height
 		items[idx] = item
 	}
 
-	return height, func(context Context, x, y, w, h float64) {
+	return height, FuncToRenderer(func(context Context, x, y, w, h float64) {
 		for _, row := range items {
-			row.render(context, x, y, w, row.height)
+			row.renderer.Render(context, x, y, w, row.height)
 			y += row.height
 		}
-	}
+	})
 }
 
 type Empty struct {
 	Width, Height float64
 }
 
-func (e Empty) Measure(context Context, width float64) (height float64, render func(context Context, x, y, w, h float64)) {
-	return e.Height, func(context Context, x, y, w, h float64) {}
+func (e Empty) Measure(context Context, width float64) (height float64, render Renderer) {
+	return e.Height, FuncToRenderer(func(context Context, x, y, w, h float64) {})
 }

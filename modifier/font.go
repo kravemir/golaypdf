@@ -1,26 +1,26 @@
 package modifier
 
 import (
-	"github.com/kravemir/golaypdf"
+	. "github.com/kravemir/golaypdf"
 )
 
 type Font struct {
-	Content golaypdf.FixedWidthMeasurable
+	Content FixedWidthMeasurable
 
 	Family, Style string
 	Size          float64
 }
 
-func (f Font) applyFont(context golaypdf.Context) func(context golaypdf.Context) {
+func (f Font) applyFont(context Context) func(context Context) {
 	family, style, size := context.GetFont()
 
 	context.SetFont(f.Family, f.Style, f.Size)
 
-	return func(context golaypdf.Context) {
+	return func(context Context) {
 		context.SetFont(family, style, size)
 	}
 }
 
-func (f Font) Measure(context golaypdf.Context, width float64) (float64, func(context golaypdf.Context, x, y, w, h float64)) {
+func (f Font) Measure(context Context, width float64) (height float64, render Renderer) {
 	return measureApplyModifier(context, width, f.applyFont, f.Content)
 }

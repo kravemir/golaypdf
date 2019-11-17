@@ -1,11 +1,11 @@
 package container
 
 import (
-	"github.com/kravemir/golaypdf"
+	. "github.com/kravemir/golaypdf"
 )
 
 type TableCell struct {
-	Content golaypdf.FixedWidthMeasurable
+	Content FixedWidthMeasurable
 }
 
 type TableRow struct {
@@ -22,14 +22,14 @@ type Table struct {
 	Rows    []TableRow
 }
 
-func (t Table) Measure(context golaypdf.Context, width float64) (height float64, render func(context golaypdf.Context, x, y, w, h float64)) {
+func (t Table) Measure(context Context, width float64) (height float64, render Renderer) {
 	type MeasuredColumn struct {
 		width  float64
 		height float64
 	}
 	type MeasuredCell struct {
-		height float64
-		render func(context golaypdf.Context, x, y, w, h float64)
+		height   float64
+		renderer Renderer
 	}
 	type MeasuredRow struct {
 		height float64
@@ -69,8 +69,8 @@ func (t Table) Measure(context golaypdf.Context, width float64) (height float64,
 			}
 
 			measuredRows[rowIdx].cells[columnIdx] = MeasuredCell{
-				height: cellHeight,
-				render: cellRender,
+				height:   cellHeight,
+				renderer: cellRender,
 			}
 		}
 
@@ -84,7 +84,7 @@ func (t Table) Measure(context golaypdf.Context, width float64) (height float64,
 		}
 	}
 
-	return maxHeight, func(context golaypdf.Context, base_x, y, w, h float64) {
+	return maxHeight, FuncToRenderer(func(context Context, base_x, y, w, h float64) {
 		for _, measuredRow := range measuredRows {
 			x := base_x
 			h := measuredRow.height
@@ -92,12 +92,12 @@ func (t Table) Measure(context golaypdf.Context, width float64) (height float64,
 			for columnIdx, columnCell := range measuredRow.cells {
 				w := measuredColumns[columnIdx].width
 
-				columnCell.render(context, x, y, w, h)
+				columnCell.renderer.Render(context, x, y, w, h)
 
 				x = x + w
 			}
 
 			y = y + h
 		}
-	}
+	})
 }
