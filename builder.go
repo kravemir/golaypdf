@@ -9,6 +9,7 @@ type Context interface {
 
 	GetFont() (family, style string, size float64)
 	SetFont(family, style string, size float64)
+	SetFontStyle(style string)
 	SetFontSize(size float64)
 }
 
@@ -31,6 +32,11 @@ func (builder *PdfBuilder) GetFont() (family, style string, size float64) {
 func (builder *PdfBuilder) SetFont(family, style string, size float64) {
 	builder.fontFamily, builder.fontStyle, builder.fontSize = family, style, size
 	builder.Pdf.SetFont(family, style, size)
+}
+
+func (builder *PdfBuilder) SetFontStyle(style string) {
+	builder.fontStyle = style
+	builder.Pdf.SetFontStyle(style)
 }
 
 func (builder *PdfBuilder) SetFontSize(size float64) {
