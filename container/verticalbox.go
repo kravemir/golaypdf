@@ -1,15 +1,17 @@
 package container
 
-import . "github.com/kravemir/golaypdf"
+import (
+	"github.com/kravemir/golaypdf"
+)
 
 type VerticalBox struct {
-	Rows []FixedWidthMeasurable
+	Rows []golaypdf.FixedWidthMeasurable
 }
 
-func (v VerticalBox) Measure(context Context, width float64) (height float64, render Renderer) {
+func (v VerticalBox) Measure(context golaypdf.MeasureContext, width float64) (height float64, render golaypdf.Renderer) {
 	type itemType struct {
 		height   float64
-		renderer Renderer
+		renderer golaypdf.Renderer
 	}
 
 	var item itemType
@@ -22,7 +24,7 @@ func (v VerticalBox) Measure(context Context, width float64) (height float64, re
 		items[idx] = item
 	}
 
-	return height, FuncToRenderer(func(context Context, x, y, w, h float64) {
+	return height, golaypdf.FuncToRenderer(func(context golaypdf.RenderContext, x, y, w, h float64) {
 		for _, row := range items {
 			row.renderer.Render(context, x, y, w, row.height)
 			y += row.height

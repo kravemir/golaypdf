@@ -1,11 +1,11 @@
 package container
 
 import (
-	. "github.com/kravemir/golaypdf"
+	"github.com/kravemir/golaypdf"
 )
 
 type TableCell struct {
-	Content FixedWidthMeasurable
+	Content golaypdf.FixedWidthMeasurable
 }
 
 type TableRow struct {
@@ -22,14 +22,14 @@ type Table struct {
 	Rows    []TableRow
 }
 
-func (t Table) Measure(context Context, width float64) (height float64, render Renderer) {
+func (t Table) Measure(context golaypdf.MeasureContext, width float64) (height float64, render golaypdf.Renderer) {
 	type MeasuredColumn struct {
 		width  float64
 		height float64
 	}
 	type MeasuredCell struct {
 		height   float64
-		renderer Renderer
+		renderer golaypdf.Renderer
 	}
 	type MeasuredRow struct {
 		height float64
@@ -84,7 +84,7 @@ func (t Table) Measure(context Context, width float64) (height float64, render R
 		}
 	}
 
-	return maxHeight, FuncToRenderer(func(context Context, base_x, y, w, h float64) {
+	return maxHeight, golaypdf.FuncToRenderer(func(context golaypdf.RenderContext, base_x, y, w, h float64) {
 		for _, measuredRow := range measuredRows {
 			x := base_x
 			h := measuredRow.height

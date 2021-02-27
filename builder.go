@@ -4,7 +4,8 @@ import (
 	"github.com/jung-kurt/gofpdf"
 )
 
-type Context interface {
+type MeasureContext interface {
+	// TODO: expose TextMeasurer instead of mutable PDF here
 	PDF() *gofpdf.Fpdf
 
 	GetFont() (family, style string, size float64)
@@ -14,7 +15,7 @@ type Context interface {
 }
 
 type FixedWidthMeasurable interface {
-	Measure(context Context, width float64) (height float64, render Renderer)
+	Measure(context MeasureContext, width float64) (height float64, render Renderer)
 }
 
 type PdfBuilder struct {

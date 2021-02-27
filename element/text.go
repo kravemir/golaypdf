@@ -1,8 +1,9 @@
 package element
 
 import (
-	. "github.com/kravemir/golaypdf"
 	"math"
+
+	"github.com/kravemir/golaypdf"
 )
 
 const float64EqualityThreshold = 1e-9
@@ -18,7 +19,7 @@ type Text struct {
 	HorizontalAlign string
 }
 
-func (c Text) Measure(context Context, width float64) (height float64, render Renderer) {
+func (c Text) Measure(context golaypdf.MeasureContext, width float64) (height float64, render golaypdf.Renderer) {
 	lineHt := c.LineHt
 
 	if almostEqual(lineHt, 0.0) {
@@ -32,7 +33,7 @@ func (c Text) Measure(context Context, width float64) (height float64, render Re
 	textList := context.PDF().SplitText(c.Text, width)
 	height = float64(len(textList)) * lineHt
 
-	return height, FuncToRenderer(func(context Context, x, y, w, h float64) {
+	return height, golaypdf.FuncToRenderer(func(context golaypdf.RenderContext, x, y, w, h float64) {
 		lineY := y + lineHt*baseline
 
 		for _, textLine := range textList {

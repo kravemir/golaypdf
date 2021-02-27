@@ -1,9 +1,11 @@
 package container
 
-import . "github.com/kravemir/golaypdf"
+import (
+	"github.com/kravemir/golaypdf"
+)
 
 type HorizontalBoxItem struct {
-	Content FixedWidthMeasurable
+	Content golaypdf.FixedWidthMeasurable
 	Width   float64
 	Grow    float64
 }
@@ -12,10 +14,10 @@ type HorizontalBox struct {
 	Columns []HorizontalBoxItem
 }
 
-func (h HorizontalBox) Measure(context Context, width float64) (height float64, render Renderer) {
+func (h HorizontalBox) Measure(context golaypdf.MeasureContext, width float64) (height float64, render golaypdf.Renderer) {
 	type cellType struct {
 		width, height float64
-		renderer      Renderer
+		renderer      golaypdf.Renderer
 	}
 
 	colCount := len(h.Columns)
@@ -45,7 +47,7 @@ func (h HorizontalBox) Measure(context Context, width float64) (height float64, 
 		cellList[idx] = cell
 	}
 
-	return maxHeight, FuncToRenderer(func(context Context, x, y, w, h float64) {
+	return maxHeight, golaypdf.FuncToRenderer(func(context golaypdf.RenderContext, x, y, w, h float64) {
 		for _, cell := range cellList {
 			cell.renderer.Render(context, x, y, cell.width, maxHeight)
 			x += cell.width
